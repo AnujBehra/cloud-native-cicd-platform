@@ -1,0 +1,4 @@
+Application deployed.
+
+Port-forward:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "deployed-app.fullname" . }} 8080:{{ .Values.service.port }}

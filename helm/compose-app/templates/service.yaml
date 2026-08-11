@@ -1,0 +1,19 @@
+{{- range .Values.services }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "compose-app.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ .name }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/name: {{ .name }}
+  ports:
+    - name: http
+      port: {{ .port }}
+      targetPort: {{ .port }}
+{{- end }}

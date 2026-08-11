@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cicd-platform.fullname" . }}
+  labels:
+    {{- include "cicd-platform.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "cicd-platform.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        {{- include "cicd-platform.labels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "3000"
+    spec:
+      serviceAccountName: {{ include "cicd-platform.serviceAccountName" . }}
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.database.urlSecretName }}
+                  key: {{ .Values.database.urlSecretKey }}
+            - name: PIPELINE_MODE
+              value: {{ .Values.env.pipelineMode | quote }}
+            - name: DOCKER_REGISTRY
+              value: {{ .Values.env.dockerRegistry | quote }}
+            - name: PUSH_IMAGES
+              value: {{ .Values.env.pushImages | quote }}
+            - name: SECURITY_SCAN_ENABLED
+              value: {{ .Values.env.securityScanEnabled | quote }}
+            - name: SECURITY_SCAN_FAIL_ON_FINDINGS
+              value: {{ .Values.env.securityScanFailOnFindings | quote }}
+            - name: PIPELINE_CONCURRENCY
+              value: {{ .Values.env.pipelineConcurrency | quote }}
+            - name: KUBE_NAMESPACE
+              value: {{ .Values.env.kubeNamespace | quote }}
+            {{- if .Values.env.gitAuthTokenSecretName }}
+            - name: GIT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.env.gitAuthTokenSecretName }}
+                  key: {{ .Values.env.gitAuthTokenSecretKey }}
+            {{- end }}
+            - name: CORS_ORIGIN
+              value: {{ .Values.env.corsOrigin | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.env.logLevel | quote }}
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.api.keySecretName }}
+                  key: {{ .Values.api.keySecretKey }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

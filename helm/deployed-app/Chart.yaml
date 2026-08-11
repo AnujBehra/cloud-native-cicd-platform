@@ -1,0 +1,6 @@
+apiVersion: v2
+name: deployed-app
+description: Generic app chart used by the CI/CD platform to deploy repositories
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

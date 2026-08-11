@@ -1,0 +1,4 @@
+Deployed Compose-style services:
+{{- range .Values.services }}
+- {{ .name }} on port {{ .port }}
+{{- end }}

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CI/CD Deployment Platform</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">Cloud-Native CI/CD</p>
+          <h1>Deployment Control Plane</h1>
+          <p class="lede">Clone public GitHub repositories, run checks, build Docker images, and release real workloads to Kubernetes with Helm.</p>
+        </div>
+        <button id="refresh" type="button">Refresh</button>
+      </section>
+
+      <section class="stats" aria-label="Deployment summary">
+        <article class="stat">
+          <span class="stat-label">Total</span>
+          <strong id="stat-total">0</strong>
+        </article>
+        <article class="stat">
+          <span class="stat-label">Deployed</span>
+          <strong id="stat-deployed">0</strong>
+        </article>
+        <article class="stat">
+          <span class="stat-label">Running</span>
+          <strong id="stat-running">0</strong>
+        </article>
+        <article class="stat">
+          <span class="stat-label">Failed</span>
+          <strong id="stat-failed">0</strong>
+        </article>
+      </section>
+
+      <section class="layout">
+        <aside class="sidebar">
+          <form id="deploy-form" class="panel">
+            <div class="panel-heading">
+              <h2>Trigger Deployment</h2>
+            </div>
+            <div class="repo-presets" aria-label="Public repository shortcuts">
+              <button type="button" class="preset" data-repository="AnujBehra/Portfolio" data-branch="main" data-environment="staging">Portfolio</button>
+              <button type="button" class="preset" data-repository="AnujBehra/3D-solar-system" data-branch="main" data-environment="staging">3D Solar System</button>
+              <button type="button" class="preset wide" data-repository="AnujBehra/Multiservice-docker-Platform" data-branch="main" data-environment="staging">Multiservice Platform</button>
+            </div>
+          <label>
+            Public GitHub Repository
+            <input name="repository" value="AnujBehra/Portfolio" placeholder="owner/repo" required />
+          </label>
+          <label>
+            Branch
+            <input name="branch" value="main" required />
+          </label>
+          <label>
+            Commit SHA
+            <input name="commit_sha" placeholder="Leave blank to deploy latest branch commit" />
+          </label>
+          <label>
+            Environment
+            <select name="environment">
+              <option value="dev">dev</option>
+              <option value="staging">staging</option>
+              <option value="prod">prod</option>
+            </select>
+          </label>
+          <label>
+            API Key
+            <input name="api_key" value="local-dev-secret" type="password" autocomplete="off" />
+          </label>
+          <button type="submit">Run Pipeline</button>
+          <p id="form-status" class="form-status" role="status"></p>
+          </form>
+
+          <section class="panel compact">
+            <h2>Runtime</h2>
+            <dl class="runtime">
+              <div><dt>Pipeline</dt><dd>Real mode</dd></div>
+              <div><dt>Cluster</dt><dd>Docker Desktop Kubernetes</dd></div>
+              <div><dt>Registry</dt><dd>Local image store</dd></div>
+              <div><dt>Queue</dt><dd id="queue-status">0 active / 0 pending</dd></div>
+              <div><dt>Deploy</dt><dd>Helm upgrade --install</dd></div>
+            </dl>
+          </section>
+        </aside>
+
+        <section class="content">
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Deployments</h2>
+              <span id="deployment-count" class="count">0</span>
+            </div>
+            <div id="deployments" class="deployments"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Pipeline Detail</h2>
+              <span id="selected-id" class="selected-id">No selection</span>
+            </div>
+            <div id="events" class="events empty">Select a deployment to inspect its stages, image build, and Kubernetes rollout.</div>
+          </section>
+        </section>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>
