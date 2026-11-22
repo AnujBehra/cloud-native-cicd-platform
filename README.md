@@ -1,24 +1,20 @@
-# 🚀 ShipOps — Cloud-Native CI/CD Deployment Engine & K8s Orchestrator
+# ShipOps: Cloud-Native CI/CD Platform & Kubernetes Orchestrator
 
 [![CI/CD](https://github.com/AnujBehra/cloud-native-cicd-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/AnujBehra/cloud-native-cicd-platform/actions)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-Rolling%20Update%20(maxSurge%3D25%25)-326CE5.svg?logo=kubernetes&logoColor=white)](k8s)
-[![Helm](https://img.shields.io/badge/Helm-1--Click%20Rollback-0F1689.svg?logo=helm&logoColor=white)](charts)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Rolling%20Update-326CE5.svg?logo=kubernetes&logoColor=white)](k8s)
+[![Helm](https://img.shields.io/badge/Helm-v3-0F1689.svg?logo=helm&logoColor=white)](charts)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
 [![Prometheus](https://img.shields.io/badge/Prometheus-DORA%20Metrics-E6522C.svg?logo=prometheus&logoColor=white)](monitoring)
-[![Grafana](https://img.shields.io/badge/Grafana-Provisioned-F46800.svg?logo=grafana&logoColor=white)](monitoring)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1.svg?logo=postgresql&logoColor=white)](src/db)
 
-> **Resume Project:**
-> **ShipOps — Cloud-Native CI/CD Deployment Engine & K8s Orchestrator** | *Node.js, TypeScript, Docker, Kubernetes, Helm, PostgreSQL, Prometheus*  
-> • Engineered automated 6-stage CI/CD engine executing source validation, unit tests, multi-stage Docker builds, Trivy CVE security scans, and Helm packaging upon HMAC webhooks.  
-> • Implemented zero-downtime K8s rolling updates (`maxSurge=25%`, `maxUnavailable=0`) and an instant 1-click Helm rollback engine tracking complete revision history in PostgreSQL.  
-> • Built real-time ANSI log streaming over WebSocket and SSE, delivering sub-second live pipeline execution feedback to an interactive web management console and `shipctl` CLI.  
-> • Instrumented native Prometheus metrics and designed pre-provisioned Grafana dashboards tracking the 4 core DORA metrics (Deployment Frequency, Lead Time, Change Failure Rate, MTTR).
+ShipOps is an automated CI/CD deployment platform and Kubernetes orchestrator built with Node.js and TypeScript. It triggers on Git webhooks, runs automated quality checks and container builds, validates and packages Helm charts, executes zero-downtime rolling updates on Kubernetes workloads, and tracks revision history in PostgreSQL for 1-click rollbacks.
+
+Live execution feedback is streamed in real time via WebSockets and SSE to both a web dashboard and the `shipctl` CLI, while native Prometheus instrumentation tracks the 4 core DORA metrics (Deployment Frequency, Lead Time, Change Failure Rate, and MTTR).
 
 ---
 
-## 📌 Architecture Overview
+## Architecture Overview
 
 ```mermaid
 graph TD
@@ -66,7 +62,7 @@ graph TD
 
 ---
 
-## ✨ Key Features & Technical Capabilities
+## Key Features
 
 1. **Multi-Stage Automated Pipeline Engine**:
    - **Checkout**: Clones and isolates workspace per commit SHA.
@@ -95,7 +91,7 @@ graph TD
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology | Purpose |
 | :--- | :--- | :--- |
@@ -111,9 +107,9 @@ graph TD
 
 ---
 
-## 🚀 Quickstart Guide
+## Getting Started
 
-### Option 1: Run with Docker Compose (Full Production Stack)
+### Option 1: Run with Docker Compose (Full Stack)
 
 Bring up ShipOps Platform, PostgreSQL, Prometheus, and Grafana in a single command:
 
