@@ -1,10 +1,7 @@
 name: Client App CI/CD Trigger
 
 on:
-  push:
-    branches: [ main, staging ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   shipops-deploy:
