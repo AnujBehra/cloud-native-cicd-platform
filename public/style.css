@@ -1,0 +1,56 @@
+/* Custom UI styles and ANSI terminal formatting */
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #090d16;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Nav Tabs */
+.nav-tab.active {
+  background-color: #1e293b;
+  color: #ffffff;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Stepper stage styling */
+.stage-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.stage-card.running {
+  border-color: #0284c7;
+  background: rgba(14, 165, 233, 0.08);
+  box-shadow: 0 0 12px rgba(14, 165, 233, 0.2);
+}
+.stage-card.passed {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+.stage-card.failed {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.05);
+}
+.stage-card.pending {
+  border-color: #1f2937;
+  background: #0d121f;
+  opacity: 0.6;
+}
+
+/* Terminal ANSI colored text simulation */
+.ansi-bold { font-weight: bold; }
+.ansi-blue { color: #38bdf8; }
+.ansi-green { color: #4ade80; }
+.ansi-yellow { color: #facc15; }
+.ansi-red { color: #f87171; }
+.ansi-cyan { color: #22d3ee; }
+.ansi-dim { color: #64748b; }

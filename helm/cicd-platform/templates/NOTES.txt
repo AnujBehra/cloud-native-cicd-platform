@@ -1,4 +1,0 @@
-CI/CD platform is installed.
-
-Port-forward locally:
-  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "cicd-platform.fullname" . }} 8080:{{ .Values.service.port }}

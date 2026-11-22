@@ -1,0 +1,61 @@
+name: ShipOps Platform CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-verify:
+    name: Build & Test Platform
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: shipops_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Type Check & Build TypeScript
+        run: npm run build
+
+      - name: Run Test Suite
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: shipops_test
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+        run: npm test
+
+      - name: Verify Helm Chart Templates
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          helm lint charts/order-service
+
+      - name: Build Platform Docker Image
+        run: |
+          docker build -t shipops-platform:ci .

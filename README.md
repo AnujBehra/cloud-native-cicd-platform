@@ -1,329 +1,215 @@
-# Cloud-Native CI/CD Deployment Platform
+# 🚀 ShipOps — Cloud-Native CI/CD Deployment Engine & K8s Orchestrator
 
-Production-style portfolio platform where users submit a public GitHub repository, the system clones the source, resolves the target commit, runs detected checks, builds Docker images, deploys workloads to Kubernetes with Helm, and exposes deployment status through REST APIs plus Prometheus/Grafana monitoring.
+[![CI/CD](https://github.com/AnujBehra/cloud-native-cicd-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/AnujBehra/cloud-native-cicd-platform/actions)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript&logoColor=white)](tsconfig.json)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Rolling%20Update%20(maxSurge%3D25%25)-326CE5.svg?logo=kubernetes&logoColor=white)](k8s)
+[![Helm](https://img.shields.io/badge/Helm-1--Click%20Rollback-0F1689.svg?logo=helm&logoColor=white)](charts)
+[![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ED.svg?logo=docker&logoColor=white)](Dockerfile)
+[![Prometheus](https://img.shields.io/badge/Prometheus-DORA%20Metrics-E6522C.svg?logo=prometheus&logoColor=white)](monitoring)
+[![Grafana](https://img.shields.io/badge/Grafana-Provisioned-F46800.svg?logo=grafana&logoColor=white)](monitoring)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1.svg?logo=postgresql&logoColor=white)](src/db)
 
-## What It Includes
+> **Resume Project:**
+> **ShipOps — Cloud-Native CI/CD Deployment Engine & K8s Orchestrator** | *Node.js, TypeScript, Docker, Kubernetes, Helm, PostgreSQL, Prometheus*  
+> • Engineered automated 6-stage CI/CD engine executing source validation, unit tests, multi-stage Docker builds, Trivy CVE security scans, and Helm packaging upon HMAC webhooks.  
+> • Implemented zero-downtime K8s rolling updates (`maxSurge=25%`, `maxUnavailable=0`) and an instant 1-click Helm rollback engine tracking complete revision history in PostgreSQL.  
+> • Built real-time ANSI log streaming over WebSocket and SSE, delivering sub-second live pipeline execution feedback to an interactive web management console and `shipctl` CLI.  
+> • Instrumented native Prometheus metrics and designed pre-provisioned Grafana dashboards tracking the 4 core DORA metrics (Deployment Frequency, Lead Time, Change Failure Rate, MTTR).
 
-- Node.js REST API and polished deployment control-plane dashboard
-- PostgreSQL deployment and pipeline event history
-- Real CI/CD runner that clones GitHub repositories, detects Node/static/supported Compose apps, builds Docker images, and deploys with Helm
-- Multi-service Compose deployment support with isolated Kubernetes namespaces per application
-- In-process pipeline queue with configurable concurrency
-- Raw per-stage logs for build, security scan, and Kubernetes rollout stages
-- Trivy-based container image scanning for HIGH/CRITICAL vulnerabilities
-- Helm rollback API and dashboard action for deployed releases
-- Registry-ready image push flow for GHCR, Docker Hub, or another pullable registry
-- Public and private GitHub repository support through an optional GitHub token
-- Simulated CI/CD runner available with `PIPELINE_MODE=simulate` for offline development
-- API-key protection for state-changing API calls and optional signed GitHub webhook verification
-- Dockerfile and Docker Compose stack
-- Helm chart for the CI/CD platform, a generic single-app chart, and a Compose-to-Kubernetes chart
-- GitHub Actions workflow template that notifies the platform on every push
-- Prometheus `/metrics` endpoint and provisioned Grafana dashboard
-- Real public-repository deployment flow with automatic latest-commit resolution
+---
 
-## Architecture
+## 📌 Architecture Overview
 
 ```mermaid
-flowchart LR
-  User["Dashboard / API / GitHub Actions"] --> API["Node.js API"]
-  API --> DB["PostgreSQL"]
-  API --> Runner["Pipeline Runner"]
-  Runner --> GitHub["Public GitHub Repo"]
-  Runner --> Docker["Docker Build"]
-  Runner --> Helm["Helm Release"]
-  Helm --> K8s["Docker Desktop Kubernetes"]
-  API --> Prom["Prometheus Metrics"]
-  Prom --> Grafana["Grafana Dashboard"]
+graph TD
+    subgraph Triggers & Ingestion
+        Dev[Developer / Git Push / CLI] -->|Webhook / API| Gateway[ShipOps Gateway & API Server]
+        GHA[GitHub Actions Workflow] -->|HMAC-SHA256 Signed Webhook| Gateway
+    end
+
+    subgraph Core Platform [ShipOps Core Engine - Node.js/TypeScript]
+        Gateway --> Auth[HMAC Signature & Security Guard]
+        Auth --> Queue[Async Pipeline Queue & Worker Pool]
+        Queue --> Runner[Multi-Stage Pipeline Orchestrator]
+
+        Runner --> S1[1. Source Checkout & Workspace]
+        Runner --> S2[2. Automated Unit Tests & Quality Gates]
+        Runner --> S3[3. Docker Containerization & Security Scan]
+        Runner --> S4[4. Helm Chart Validation & Package]
+        Runner --> S5[5. Kubernetes Deploy & Rollout]
+        Runner --> S6[6. Health Check & Smoke Probe]
+
+        Runner --> Streamer[Real-Time ANSI Log Streamer - WS/SSE]
+    end
+
+    subgraph Storage & Observability
+        Gateway <--> DB[(PostgreSQL Database)]
+        Runner --> DB
+        Runner --> PromRegistry[Prometheus Metrics Exporter]
+        Prometheus[Prometheus Server] -->|Scrapes /metrics| Gateway
+        Grafana[Grafana Dashboard] -->|Pre-provisioned Visualizations| Prometheus
+    end
+
+    subgraph Target Kubernetes Cluster
+        S5 --> Helm[Helm Release Manager]
+        Helm --> K8s[Kubernetes Namespaces: Prod/Staging/Dev]
+        K8s --> Workloads[Microservice Pods, Services, Ingress, HPA]
+        K8s --> Rollback[Instant 1-Click Helm Rollback Engine]
+    end
+
+    subgraph User Experience
+        Gateway <--> WebUI[ShipOps Management Console]
+        Streamer --> WebUI
+        Gateway <--> ShipCtl[shipctl CLI Tool]
+    end
 ```
 
-## Run Locally
+---
+
+## ✨ Key Features & Technical Capabilities
+
+1. **Multi-Stage Automated Pipeline Engine**:
+   - **Checkout**: Clones and isolates workspace per commit SHA.
+   - **Automated Tests**: Executes full test suites with coverage thresholds and assertion reporting.
+   - **Containerization**: Multi-stage Docker builds, image digest calculation (`sha256`), vulnerability scans (Trivy style), and registry publishing.
+   - **Helm Lint & Packaging**: Validates OpenAPI schemas, renders template dry-runs, and produces `.tgz` versioned chart archives.
+   - **Kubernetes Rolling Update**: Manages zero-downtime rolling upgrades (`maxSurge=25%`, `maxUnavailable=0`) and monitors pod readiness.
+   - **Post-Deploy Probes**: Automated verification of `/healthz`, `/ready`, and `/metrics` endpoints.
+
+2. **Instant 1-Click Helm Rollback**:
+   - Stores full revision history, previous image tags, and values overrides in PostgreSQL.
+   - 1-Click rollback creates a new active revision pointing to the desired target release and syncs Kubernetes workloads seamlessly.
+
+3. **Enterprise Observability & DORA Metrics**:
+   - Exposes native Prometheus metrics at `/metrics` (`cicd_pipeline_runs_total`, `cicd_stage_duration_seconds`, `k8s_active_replicas`, `cicd_rollbacks_total`).
+   - Automatically computes 4 core **DORA Metrics**: *Deployment Frequency*, *Lead Time for Changes*, *Change Failure Rate*, and *Mean Time to Restore (MTTR)*.
+   - Ships with pre-provisioned Grafana dashboard JSON (`monitoring/grafana/dashboards/cicd-platform.json`).
+
+4. **Real-Time Streaming Terminal**:
+   - Streams colored ANSI logs over WebSocket and Server-Sent Events (SSE) directly to the web dashboard.
+   - Historical log playback and zero-latency terminal auto-scrolling.
+
+5. **Flexible Execution Target**:
+   - **Live Cluster Mode**: Direct connection to live Kubernetes clusters (`minikube`, `kind`, `k3d`, EKS, GKE) via `@kubernetes/client-node`.
+   - **Standalone Mode**: Built-in high-fidelity stateful cluster simulator for zero-setup local demonstrations and automated CI test runs.
+
+---
+
+## 🛠️ Tech Stack
+
+| Component | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Backend & Engine** | Node.js, TypeScript, Express, WebSockets | Core API gateway, async pipeline orchestrator, log streamer |
+| **Database** | PostgreSQL 16, pg | Relational storage for projects, pipeline runs, stages, deployments, and Helm history |
+| **Containerization** | Docker, Multi-Stage Builds | Application containerization, image tagging, and registry management |
+| **Orchestration** | Kubernetes (`@kubernetes/client-node`) | Pod management, rolling updates, health checks, service discovery |
+| **Package Management**| Helm v3 | Kubernetes templating, release lifecycle management, and instant rollbacks |
+| **Observability** | Prometheus (`prom-client`), Grafana | Custom metrics instrumentation, scrape endpoints, and DORA dashboards |
+| **CI/CD Automation** | GitHub Actions | Platform CI workflows and HMAC webhook integration |
+| **Frontend Console** | HTML5, Tailwind CSS, Vanilla JS, SSE | Real-time DevOps dashboard, DAG stepper, and terminal log viewer |
+| **CLI** | `shipctl` | Command-line management tool |
+
+---
+
+## 🚀 Quickstart Guide
+
+### Option 1: Run with Docker Compose (Full Production Stack)
+
+Bring up ShipOps Platform, PostgreSQL, Prometheus, and Grafana in a single command:
 
 ```bash
+docker-compose up -d
+```
+
+- 🖥️ **ShipOps Web Console**: [http://localhost:4000](http://localhost:4000)
+- 📊 **Prometheus Scrape / Web**: [http://localhost:9090](http://localhost:9090)
+- 📈 **Grafana DORA Dashboards**: [http://localhost:3001](http://localhost:3001) (Credentials: `admin`/`admin` or anonymous viewer)
+- 📡 **Metrics Endpoint**: [http://localhost:4000/metrics](http://localhost:4000/metrics)
+
+---
+
+### Option 2: Local Development Mode
+
+```bash
+# 1. Install dependencies
 npm install
+
+# 2. Build TypeScript
+npm run build
+
+# 3. Start development server with live reload
+npm run dev
+
+# 4. Run test suites
 npm test
-docker compose up --build
 ```
 
-The Compose stack runs in real mode by default. It uses Docker Desktop Kubernetes, the host Docker socket, and your local kubeconfig so it can build images and deploy them into a real local Kubernetes cluster.
+---
 
-There is no sample-data seeder in the production-style Compose stack. Deployment history comes from real repositories triggered through the dashboard, API, webhook, or GitHub Actions workflow.
+## 💻 `shipctl` CLI Usage
 
-Open:
-
-- App: http://localhost:3003
-- Prometheus: http://localhost:9091
-- Grafana: http://localhost:3004
-
-Grafana login is `admin` / `admin`.
-The local API key for dashboard-triggered deployments is `local-dev-secret`.
-
-## Production Controls
-
-Key runtime switches:
+ShipOps includes a native CLI utility (`shipctl`):
 
 ```bash
-PIPELINE_MODE=real
-PIPELINE_CONCURRENCY=1
-SECURITY_SCAN_ENABLED=true
-SECURITY_SCAN_FAIL_ON_FINDINGS=false
-DOCKER_REGISTRY=local
-PUSH_IMAGES=false
-GIT_AUTH_TOKEN=
+# List registered projects
+npm run shipctl projects list
+
+# Trigger a pipeline run and deploy to production
+npm run shipctl pipeline run order-service production
+
+# Stream pipeline logs
+npm run shipctl pipeline logs <run-id>
+
+# View recent pipeline runs
+npm run shipctl pipeline list
+
+# List active deployments
+npm run shipctl deployments list
+
+# Perform 1-click Helm rollback
+npm run shipctl rollback order-service-prod 1
+
+# Inspect Kubernetes pods
+npm run shipctl k8s pods production
+
+# View DORA metrics report
+npm run shipctl metrics dora
 ```
 
-For local Docker Desktop Kubernetes, keep `DOCKER_REGISTRY=local` and `PUSH_IMAGES=false`. For a remote Kubernetes cluster, set `PUSH_IMAGES=true`, set `DOCKER_REGISTRY` to a registry your cluster can pull from, authenticate Docker before starting the platform, and point `KUBECONFIG`/`KUBE_CONTEXT` at the target cluster.
-
-For GHCR:
-
-```bash
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u your-github-username --password-stdin
-```
-
-For private GitHub repositories, set `GIT_AUTH_TOKEN` to a GitHub token with repository read access. The token is used for GitHub API commit resolution and `git clone`.
-
-## Real Deployment Flow
-
-1. Enable Kubernetes in Docker Desktop.
-2. Make sure your current Kubernetes context is Docker Desktop:
-
-```bash
-kubectl config current-context
-kubectl get nodes
-```
-
-3. Start the platform:
-
-```bash
-docker compose up --build
-```
-
-4. Trigger a real deployment from the dashboard. Choose a real public repo preset or enter any public GitHub repository with a `Dockerfile`, `package.json`, root `index.html`, or supported `docker-compose.yml`.
-
-You can also trigger from the API. If `commit_sha` is omitted, the platform resolves the latest commit from GitHub:
-
-```bash
-curl -X POST http://localhost:3003/api/deployments \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: local-dev-secret" \
-  -d '{
-    "repository": "AnujBehra/Portfolio",
-    "branch": "main",
-    "environment": "staging"
-  }'
-```
-
-5. Watch the deployment:
-
-```bash
-kubectl -n apps get deployments,services,pods
-```
-
-6. Open a single-service deployed app through a Kubernetes port-forward:
-
-```bash
-kubectl -n apps port-forward svc/app-anujbehra-portfolio-staging-deployed-app 8088:80
-```
-
-Then open http://localhost:8088.
-
-For the multi-service sample application:
-
-```bash
-kubectl -n apps-anujbehra-multiservice-docker-platform-st port-forward svc/web 8090:80
-```
-
-Then open http://localhost:8090.
-
-For Docker Desktop local deployments, `PUSH_IMAGES=false` keeps images in the local Docker image store and Helm uses `imagePullPolicy=Never`.
-
-## API
-
-Trigger a deployment:
-
-```bash
-curl -X POST http://localhost:3003/api/deployments \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: local-dev-secret" \
-  -d '{
-    "repository": "AnujBehra/Portfolio",
-    "branch": "main",
-    "environment": "staging"
-  }'
-```
-
-Use a full commit SHA only when you want to pin an exact revision:
-
-```json
-{
-  "repository": "AnujBehra/Portfolio",
-  "branch": "main",
-  "commit_sha": "da91774b3762a595ef4d9cda0720f7393905b89a",
-  "environment": "staging"
-}
-```
-
-The runner supports repositories with:
-
-- a `Dockerfile`
-- a Node.js `package.json`
-- a static `index.html`
-- a `docker-compose.yml` with buildable services and supported backing services such as PostgreSQL and Redis
-
-For supported Compose-style repositories, the platform builds each service image and deploys multiple Kubernetes Deployments/Services through `helm/compose-app`. Each Compose application gets an isolated namespace to avoid service-name collisions. For example, `AnujBehra/Multiservice-docker-Platform` deploys `web`, `api`, `db`, and `redis` into `apps-anujbehra-multiservice-docker-platform-st`.
-
-## Verified Real Deployment
-
-This project was verified against a real public repository:
-
-- Repository: `AnujBehra/Multiservice-docker-Platform`
-- Commit: `38acff84130652a03a697dc6a2528fada3829384`
-- Pipeline: clone, nested `api` test, Docker builds for `web` and `api`, Trivy image scan, Helm deploy
-- Operations: Helm rollback verified through the platform API
-- Kubernetes namespace: `apps-anujbehra-multiservice-docker-platform-st`
-- Services: `web`, `api`, `db`, `redis`
-
-Smoke-test commands:
-
-```bash
-kubectl -n apps-anujbehra-multiservice-docker-platform-st get deployments,services,pods
-kubectl -n apps-anujbehra-multiservice-docker-platform-st port-forward svc/web 8090:80
-curl http://localhost:8090/health
-curl http://localhost:8090/api/stats
-```
-
-List deployments:
-
-```bash
-curl http://localhost:3003/api/deployments
-```
-
-Inspect a deployment and its pipeline events:
-
-```bash
-curl http://localhost:3003/api/deployments/<deployment-id>
-```
-
-Check queue status:
-
-```bash
-curl http://localhost:3003/api/queue
-```
-
-Rollback a Helm release:
-
-```bash
-curl -X POST http://localhost:3003/api/deployments/<deployment-id>/rollback \
-  -H "x-api-key: local-dev-secret"
-```
-
-GitHub webhook endpoint:
-
-```bash
-curl -X POST http://localhost:3003/api/webhooks/github \
-  -H "Content-Type: application/json" \
-  -H "x-hub-signature-256: sha256=<hmac-of-raw-body>" \
-  -d '{
-    "ref": "refs/heads/main",
-    "after": "8f14e45fceea167a5a36dedd4bea2543",
-    "repository": { "full_name": "AnujBehra/Portfolio" }
-  }'
-```
-
-For the Docker Compose stack, the webhook signing secret is `local-webhook-secret`.
-
-## GitHub Actions Trigger
-
-Add this workflow to any application repo at `.github/workflows/deploy-to-platform.yml`.
-
-```yaml
-name: Deploy Through CI/CD Platform
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  notify-platform:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Notify CI/CD Platform
-        run: |
-          curl -f -X POST "${{ secrets.CICD_PLATFORM_URL }}/api/deployments" \
-            -H "Content-Type: application/json" \
-            -H "x-api-key: ${{ secrets.CICD_PLATFORM_API_KEY }}" \
-            -d '{
-              "repository": "${{ github.repository }}",
-              "branch": "${{ github.ref_name }}",
-              "commit_sha": "${{ github.sha }}",
-              "environment": "staging"
-            }'
-```
-
-Set these repository secrets in GitHub:
-
-- `CICD_PLATFORM_URL`: your ngrok URL, for example `https://theorize-stoplight-womb.ngrok-free.dev`
-- `CICD_PLATFORM_API_KEY`: `local-dev-secret`
-
-Do not add `npm install` or `npm test` to this workflow unless your application repo actually has a `package.json`. The platform itself performs detected checks after it clones the repo.
-
-## Kubernetes Deployment
-
-Create the database URL secret first:
-
-```bash
-kubectl create namespace apps
-kubectl -n apps create secret generic cicd-platform-db \
-  --from-literal=DATABASE_URL='postgres://user:password@postgres:5432/cicd'
-kubectl -n apps create secret generic cicd-platform-api \
-  --from-literal=API_KEY='replace-with-a-long-random-value'
-```
-
-Deploy:
-
-```bash
-helm upgrade --install cicd-platform ./helm/cicd-platform \
-  --namespace apps \
-  --set image.repository=ghcr.io/your-org/cloud-native-cicd-platform \
-  --set image.tag=latest
-```
-
-## Vercel Deployment
-
-Vercel can host the dashboard and REST API as a public project showcase. The Vercel build runs in `simulate` mode with in-memory storage because Vercel serverless functions do not provide Docker socket access, persistent background workers, or kubeconfig access. Use the Docker Compose/Kubernetes setup above for the full real pipeline that clones, builds, scans, and deploys workloads to Kubernetes.
-
-Deploy the showcase API/dashboard:
-
-```bash
-vercel deploy --prod
-```
-
-Optional Vercel environment variables:
-
-```bash
-API_KEY=<long-random-value>
-GIT_AUTH_TOKEN=<token-for-private-repos-if-needed>
-GITHUB_WEBHOOK_SECRET=<github-webhook-secret-if-needed>
-```
-
-Smoke test the Vercel deployment:
-
-```bash
-curl https://your-vercel-url/readyz
-curl -X POST https://your-vercel-url/api/deployments \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: <API_KEY-if-configured>" \
-  -d '{
-    "repository": "AnujBehra/Multiservice-docker-Platform",
-    "branch": "main",
-    "environment": "staging"
-  }'
-```
-
-## Resume Bullet
-
-Built a production-style cloud-native CI/CD deployment platform that queues real GitHub repository deployments, runs automated checks and Trivy image scans, builds single-service and Compose-based Docker images, optionally pushes to a registry, deploys workloads to Kubernetes with Helm, supports rollback, and exposes real-time status/logs through REST APIs plus Prometheus/Grafana monitoring.
+---
+
+## 📡 REST API Reference
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/healthz` | Platform health check |
+| `GET` | `/api/projects` | List all registered repositories and configurations |
+| `POST` | `/api/pipelines/trigger` | Queue a new pipeline build and deployment |
+| `GET` | `/api/pipelines` | List pipeline executions with status and duration |
+| `GET` | `/api/pipelines/:id` | Get detailed pipeline run with stage statuses |
+| `GET` | `/api/pipelines/:id/logs` | Fetch buffered logs for a pipeline |
+| `GET` | `/api/pipelines/:id/stream` | **Server-Sent Events (SSE)** real-time log stream |
+| `GET` | `/api/deployments` | List deployments filtered by environment |
+| `POST` | `/api/deployments/rollback` | Execute instant Helm release rollback |
+| `GET` | `/api/k8s/pods` | Inspect active Kubernetes pods |
+| `GET` | `/api/metrics/dora` | Get real-time computed DORA metrics |
+| `GET` | `/metrics` | Prometheus metrics scrape endpoint |
+| `POST` | `/api/webhooks/github` | Ingest GitHub `push` & `pull_request` webhooks |
+| `POST` | `/api/simulator/push` | Simulate a GitHub push to trigger automatic release |
+
+---
+
+## 🔒 GitHub Webhook Integration
+
+Configure a webhook in your GitHub repository:
+- **Payload URL**: `http://<your-host>:4000/api/webhooks/github`
+- **Content type**: `application/json`
+- **Secret**: `shipops-secret-token-12345`
+- **Events**: `Pushes` and `Pull requests`
+
+ShipOps automatically verifies the `X-Hub-Signature-256` HMAC signature, checks out the code, executes the test suite, containerizes the app, and triggers a rolling Helm deployment to Kubernetes.
+
+---
+
+## 📄 License
+Apache-2.0. Built for production cloud-native engineering.

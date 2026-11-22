@@ -1,6 +1,0 @@
-apiVersion: v2
-name: cicd-platform
-description: Cloud-native CI/CD deployment platform
-type: application
-version: 0.1.0
-appVersion: "1.0.0"

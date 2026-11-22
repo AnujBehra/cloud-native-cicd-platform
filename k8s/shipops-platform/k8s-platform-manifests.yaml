@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shipops-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: shipops-controller-sa
+  namespace: shipops-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: shipops-controller-role
+rules:
+  - apiGroups: ["", "apps", "networking.k8s.io", "autoscaling"]
+    resources:
+      - deployments
+      - services
+      - pods
+      - pods/log
+      - ingresses
+      - horizontalpodautoscalers
+      - configmaps
+      - secrets
+      - namespaces
+      - events
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: shipops-controller-binding
+subjects:
+  - kind: ServiceAccount
+    name: shipops-controller-sa
+    namespace: shipops-system
+roleRef:
+  kind: ClusterRole
+  name: shipops-controller-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: shipops-config
+  namespace: shipops-system
+data:
+  NODE_ENV: "production"
+  PORT: "4000"
+  K8S_DEFAULT_NAMESPACE: "production"
+  DOCKER_REGISTRY: "registry.shipops.internal"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shipops-platform
+  namespace: shipops-system
+  labels:
+    app: shipops-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shipops-platform
+  template:
+    metadata:
+      labels:
+        app: shipops-platform
+    spec:
+      serviceAccountName: shipops-controller-sa
+      containers:
+        - name: platform
+          image: "registry.shipops.internal/shipops-platform:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 4000
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 4000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+          envFrom:
+            - configMapRef:
+                name: shipops-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shipops-platform
+  namespace: shipops-system
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4000
+      targetPort: 4000
+      name: http
+  selector:
+    app: shipops-platform
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shipops-platform-ingress
+  namespace: shipops-system
+spec:
+  rules:
+    - host: shipops.internal
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: shipops-platform
+                port:
+                  number: 4000

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: order-service
+description: Production Cloud-Native Helm Chart for E-Commerce Order Service
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+maintainers:
+  - name: ShipOps Team
+    email: devops@shipops.internal
+keywords:
+  - microservice
+  - nodejs
+  - ecommerce
+  - shipops

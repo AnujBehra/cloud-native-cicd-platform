@@ -1,111 +1,568 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CI/CD Deployment Platform</title>
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <main class="shell">
-      <section class="topbar">
-        <div>
-          <p class="eyebrow">Cloud-Native CI/CD</p>
-          <h1>Deployment Control Plane</h1>
-          <p class="lede">Clone public GitHub repositories, run checks, build Docker images, and release real workloads to Kubernetes with Helm.</p>
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShipOps | Cloud-Native CI/CD Platform</title>
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/style.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            },
+            dark: {
+              bg: '#0b0f19',
+              card: '#111827',
+              border: '#1f2937',
+              hover: '#1e293b'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#0a0d14] text-slate-100 min-h-screen font-sans antialiased flex flex-col">
+
+  <!-- Navigation Bar -->
+  <header class="border-b border-slate-800 bg-[#0f1422]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between shadow-lg">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('pipelines')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-sky-500/20 text-white font-bold text-lg">
+          <i class="fa-solid fa-dharmachakra"></i>
         </div>
-        <button id="refresh" type="button">Refresh</button>
-      </section>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-sky-400 bg-clip-text text-transparent">ShipOps</span>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">Cloud-Native CI/CD</span>
+          </div>
+          <p class="text-xs text-slate-400">Docker • Kubernetes • Helm • Prometheus • Grafana</p>
+        </div>
+      </div>
 
-      <section class="stats" aria-label="Deployment summary">
-        <article class="stat">
-          <span class="stat-label">Total</span>
-          <strong id="stat-total">0</strong>
-        </article>
-        <article class="stat">
-          <span class="stat-label">Deployed</span>
-          <strong id="stat-deployed">0</strong>
-        </article>
-        <article class="stat">
-          <span class="stat-label">Running</span>
-          <strong id="stat-running">0</strong>
-        </article>
-        <article class="stat">
-          <span class="stat-label">Failed</span>
-          <strong id="stat-failed">0</strong>
-        </article>
-      </section>
+      <!-- Navigation Tabs -->
+      <nav class="hidden md:flex items-center space-x-1 pl-8">
+        <button onclick="switchTab('pipelines')" id="tab-btn-pipelines" class="nav-tab active px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 text-white bg-slate-800">
+          <i class="fa-solid fa-code-commit"></i>
+          <span>Pipelines & Runs</span>
+        </button>
+        <button onclick="switchTab('deployments')" id="tab-btn-deployments" class="nav-tab px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i class="fa-solid fa-cubes"></i>
+          <span>Deployments & Helm</span>
+        </button>
+        <button onclick="switchTab('k8s')" id="tab-btn-k8s" class="nav-tab px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i class="fa-solid fa-server"></i>
+          <span>Kubernetes Pods</span>
+        </button>
+        <button onclick="switchTab('dora')" id="tab-btn-dora" class="nav-tab px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>DORA & Observability</span>
+        </button>
+        <button onclick="switchTab('simulator')" id="tab-btn-simulator" class="nav-tab px-3.5 py-2 text-xs font-semibold rounded-lg transition-all flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/50">
+          <i class="fa-solid fa-flask"></i>
+          <span>Webhook Simulator</span>
+        </button>
+      </nav>
+    </div>
 
-      <section class="layout">
-        <aside class="sidebar">
-          <form id="deploy-form" class="panel">
-            <div class="panel-heading">
-              <h2>Trigger Deployment</h2>
+    <!-- Actions & Status Badges -->
+    <div class="flex items-center space-x-3">
+      <div class="hidden sm:flex items-center space-x-2 text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-slate-300">Backend: <span id="db-status-badge" class="font-medium text-emerald-400">PostgreSQL</span></span>
+      </div>
+
+      <button onclick="openTriggerModal()" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-md shadow-sky-600/20 transition-all flex items-center space-x-2">
+        <i class="fa-solid fa-play"></i>
+        <span>Trigger Build</span>
+      </button>
+
+      <button onclick="quickSimulatePush()" class="px-3 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex items-center space-x-1.5" title="Simulate GitHub Push">
+        <i class="fa-brands fa-github text-sky-400"></i>
+        <span>Push to Main</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-6 max-w-[1600px] w-full mx-auto space-y-6">
+
+    <!-- TAB 1: PIPELINES & RUNS -->
+    <section id="tab-pipelines" class="tab-content space-y-6">
+      <!-- Quick Overview Counters -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">Active Pipelines</p>
+            <h3 id="stat-active-pipelines" class="text-2xl font-bold text-sky-400 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">Total Runs Executed</p>
+            <h3 id="stat-total-runs" class="text-2xl font-bold text-white mt-1">--</h3>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">Pipeline Success Rate</p>
+            <h3 id="stat-success-rate" class="text-2xl font-bold text-emerald-400 mt-1">98.4%</h3>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-medium text-slate-400">Avg Lead Time</p>
+            <h3 id="stat-avg-duration" class="text-2xl font-bold text-purple-400 mt-1">~18s</h3>
+          </div>
+          <div class="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-stopwatch"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two-Column Layout: Pipeline Runs List (Left) & Pipeline Execution Detail + Terminal (Right) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left: Runs List -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+                <i class="fa-solid fa-clock-rotate-left text-sky-400"></i>
+                <span>Execution History</span>
+              </h2>
+              <button onclick="loadPipelines()" class="text-xs text-slate-400 hover:text-white transition-colors">
+                <i class="fa-solid fa-rotate"></i> Refresh
+              </button>
             </div>
-            <div class="repo-presets" aria-label="Public repository shortcuts">
-              <button type="button" class="preset" data-repository="AnujBehra/Portfolio" data-branch="main" data-environment="staging">Portfolio</button>
-              <button type="button" class="preset" data-repository="AnujBehra/3D-solar-system" data-branch="main" data-environment="staging">3D Solar System</button>
-              <button type="button" class="preset wide" data-repository="AnujBehra/Multiservice-docker-Platform" data-branch="main" data-environment="staging">Multiservice Platform</button>
+
+            <!-- Pipeline Runs Table/List -->
+            <div id="pipeline-runs-container" class="space-y-2 max-h-[680px] overflow-y-auto pr-1">
+              <!-- Rendered via JavaScript -->
+              <div class="text-center py-8 text-slate-500 text-xs">Loading pipelines...</div>
             </div>
-          <label>
-            Public GitHub Repository
-            <input name="repository" value="AnujBehra/Portfolio" placeholder="owner/repo" required />
-          </label>
-          <label>
-            Branch
-            <input name="branch" value="main" required />
-          </label>
-          <label>
-            Commit SHA
-            <input name="commit_sha" placeholder="Leave blank to deploy latest branch commit" />
-          </label>
-          <label>
-            Environment
-            <select name="environment">
-              <option value="dev">dev</option>
-              <option value="staging">staging</option>
-              <option value="prod">prod</option>
+          </div>
+        </div>
+
+        <!-- Right: Active Pipeline Stage Stepper & Real-Time Log Viewer -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-4">
+            <!-- Pipeline Header Info -->
+            <div id="selected-pipeline-header" class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span id="selected-run-id" class="text-base font-bold text-white font-mono">run-demo</span>
+                  <span id="selected-run-status" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">passed</span>
+                  <span id="selected-run-env" class="px-2 py-0.5 rounded text-[11px] font-mono bg-indigo-500/15 text-indigo-300">production</span>
+                </div>
+                <p id="selected-run-meta" class="text-xs text-slate-400 mt-1">
+                  Commit <span class="font-mono text-sky-300">a1b2c3d</span> • branch <span class="font-semibold text-slate-200">main</span> • author <span class="text-slate-300">alex</span>
+                </p>
+              </div>
+              <div class="text-right">
+                <div id="selected-run-duration" class="text-sm font-mono font-bold text-slate-300">Duration: 18.2s</div>
+                <div id="selected-run-time" class="text-xs text-slate-500">Just now</div>
+              </div>
+            </div>
+
+            <!-- Pipeline DAG Stepper -->
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center justify-between">
+                <span>Multi-Stage Pipeline Execution DAG</span>
+                <span class="text-[11px] text-slate-500 font-normal">Automated Checks & Rollout</span>
+              </h4>
+              <div id="stages-stepper-container" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <!-- Rendered dynamically -->
+              </div>
+            </div>
+
+            <!-- Terminal Log Viewer -->
+            <div class="space-y-2 pt-2">
+              <div class="flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-2 text-slate-400">
+                  <i class="fa-solid fa-terminal text-sky-400"></i>
+                  <span class="font-bold text-slate-200">Real-Time Streaming Terminal</span>
+                  <span id="log-connection-indicator" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span> Live Stream
+                  </span>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <label class="flex items-center space-x-1 text-slate-400 text-xs cursor-pointer">
+                    <input type="checkbox" id="auto-scroll-toggle" checked class="rounded bg-slate-800 border-slate-700 text-sky-500 focus:ring-0">
+                    <span>Auto-scroll</span>
+                  </label>
+                  <button onclick="copyLogs()" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors">
+                    <i class="fa-regular fa-copy"></i> Copy
+                  </button>
+                </div>
+              </div>
+
+              <!-- Terminal Box -->
+              <div id="terminal-window" class="terminal-box bg-[#050811] border border-slate-800/80 rounded-xl p-4 font-mono text-xs text-slate-300 h-[380px] overflow-y-auto space-y-1 select-text">
+                <div class="text-slate-500 italic">Select a pipeline run to stream console logs...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: DEPLOYMENTS & HELM RELEASES -->
+    <section id="tab-deployments" class="tab-content hidden space-y-6">
+      <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-cubes text-indigo-400"></i>
+              <span>Kubernetes Deployments & Helm Releases</span>
+            </h2>
+            <p class="text-xs text-slate-400">Manage release revisions, automated rollouts, and instant 1-click rollbacks.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <select id="deploy-env-filter" onchange="loadDeployments()" class="px-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg text-slate-200">
+              <option value="">All Environments</option>
+              <option value="production" selected>Production</option>
+              <option value="staging">Staging</option>
+              <option value="development">Development</option>
             </select>
-          </label>
-          <label>
-            API Key
-            <input name="api_key" value="local-dev-secret" type="password" autocomplete="off" />
-          </label>
-          <button type="submit">Run Pipeline</button>
-          <p id="form-status" class="form-status" role="status"></p>
-          </form>
+            <button onclick="loadDeployments()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700">
+              <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+        </div>
 
-          <section class="panel compact">
-            <h2>Runtime</h2>
-            <dl class="runtime">
-              <div><dt>Pipeline</dt><dd>Real mode</dd></div>
-              <div><dt>Cluster</dt><dd>Docker Desktop Kubernetes</dd></div>
-              <div><dt>Registry</dt><dd>Local image store</dd></div>
-              <div><dt>Queue</dt><dd id="queue-status">0 active / 0 pending</dd></div>
-              <div><dt>Deploy</dt><dd>Helm upgrade --install</dd></div>
-            </dl>
-          </section>
-        </aside>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                <th class="py-3 px-3">Release Name</th>
+                <th class="py-3 px-3">Environment</th>
+                <th class="py-3 px-3">Active Revision</th>
+                <th class="py-3 px-3">Image Tag</th>
+                <th class="py-3 px-3">Status</th>
+                <th class="py-3 px-3">Deployed By</th>
+                <th class="py-3 px-3">Deployed At</th>
+                <th class="py-3 px-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="deployments-table-body" class="divide-y divide-slate-800/60 font-mono">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
 
-        <section class="content">
-          <section class="panel">
-            <div class="panel-heading">
-              <h2>Deployments</h2>
-              <span id="deployment-count" class="count">0</span>
+    <!-- TAB 3: KUBERNETES PODS & CLUSTER -->
+    <section id="tab-k8s" class="tab-content hidden space-y-6">
+      <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-bold text-white flex items-center space-x-2">
+              <i class="fa-solid fa-dharmachakra text-sky-400"></i>
+              <span>Kubernetes Workload & Pod Inspector</span>
+            </h2>
+            <p class="text-xs text-slate-400">Real-time status of microservice replicas, CPU/Memory telemetry, and pod lifecycle.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs text-slate-400">Namespace:</span>
+            <select id="k8s-namespace-select" onchange="loadK8sPods()" class="px-3 py-1.5 text-xs bg-slate-800 border border-slate-700 rounded-lg text-slate-200">
+              <option value="production" selected>production</option>
+              <option value="staging">staging</option>
+              <option value="development">development</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="k8s-pods-grid">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: DORA & PROMETHEUS OBSERVABILITY -->
+    <section id="tab-dora" class="tab-content hidden space-y-6">
+      <!-- 4 DORA Metric Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden">
+          <div class="absolute top-0 left-0 h-1 w-full bg-emerald-500"></div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Deployment Frequency</span>
+          <div class="flex items-baseline space-x-2 mt-2">
+            <span id="dora-df-val" class="text-3xl font-extrabold text-white">--</span>
+            <span id="dora-df-unit" class="text-xs text-slate-400">deploys/day</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-xs">
+            <span class="text-slate-400">Performance Tier:</span>
+            <span id="dora-df-rating" class="px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Elite</span>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden">
+          <div class="absolute top-0 left-0 h-1 w-full bg-sky-500"></div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Lead Time for Changes</span>
+          <div class="flex items-baseline space-x-2 mt-2">
+            <span id="dora-lt-val" class="text-3xl font-extrabold text-white">--</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-xs">
+            <span class="text-slate-400">Performance Tier:</span>
+            <span id="dora-lt-rating" class="px-2 py-0.5 rounded font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">Elite</span>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden">
+          <div class="absolute top-0 left-0 h-1 w-full bg-purple-500"></div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Change Failure Rate</span>
+          <div class="flex items-baseline space-x-2 mt-2">
+            <span id="dora-cfr-val" class="text-3xl font-extrabold text-white">--%</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-xs">
+            <span class="text-slate-400">Performance Tier:</span>
+            <span id="dora-cfr-rating" class="px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Elite</span>
+          </div>
+        </div>
+
+        <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm relative overflow-hidden">
+          <div class="absolute top-0 left-0 h-1 w-full bg-amber-500"></div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Mean Time to Restore (MTTR)</span>
+          <div class="flex items-baseline space-x-2 mt-2">
+            <span id="dora-mttr-val" class="text-3xl font-extrabold text-white">4.5m</span>
+          </div>
+          <div class="mt-3 flex items-center justify-between text-xs">
+            <span class="text-slate-400">Fast Rollback:</span>
+            <span class="px-2 py-0.5 rounded font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">1-Click Helm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prometheus & Grafana Links Banner -->
+      <div class="p-5 rounded-xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-sky-950/40 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div class="space-y-1">
+          <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i class="fa-solid fa-chart-pie text-orange-400"></i>
+            <span>Prometheus Scrape Endpoint & Grafana Integration</span>
+          </h3>
+          <p class="text-xs text-slate-400">ShipOps natively exports 9+ Prometheus custom metrics and pre-provisions Grafana dashboards.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+          <a href="/metrics" target="_blank" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-orange-600/20 hover:bg-orange-600/30 text-orange-300 border border-orange-500/30 transition-all flex items-center space-x-2">
+            <i class="fa-solid fa-fire"></i>
+            <span>View /metrics Raw</span>
+          </a>
+          <a href="http://localhost:3001/d/shipops-cicd-main" target="_blank" class="px-3.5 py-2 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-500 text-white shadow-md shadow-sky-600/20 transition-all flex items-center space-x-2">
+            <i class="fa-solid fa-up-right-from-square"></i>
+            <span>Open Grafana Dashboard (:3001)</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Live Embedded Grafana Dashboard -->
+      <div class="rounded-xl border border-slate-800 overflow-hidden bg-slate-950 shadow-xl space-y-0">
+        <div class="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-2 text-slate-200">
+            <i class="fa-solid fa-gauge-high text-sky-400"></i>
+            <span class="font-bold">Live Grafana Dashboard View</span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Auto-refresh 5s</span>
+          </div>
+          <a href="http://localhost:3001/d/shipops-cicd-main" target="_blank" class="text-sky-400 hover:text-sky-300 font-semibold flex items-center space-x-1">
+            <span>Open in New Tab</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+          </a>
+        </div>
+        <iframe src="http://localhost:3001/d/shipops-cicd-main?orgId=1" class="w-full h-[650px] border-0" title="Grafana Dashboard"></iframe>
+      </div>
+    </section>
+
+    <!-- TAB 5: WEBHOOK & CHAOS SIMULATOR -->
+    <section id="tab-simulator" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Simulator Actions -->
+        <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-4">
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i class="fa-solid fa-bolt text-amber-400"></i>
+            <span>Interactive Webhook & Release Simulator</span>
+          </h2>
+          <p class="text-xs text-slate-400">Trigger real GitHub webhooks, simulate code pushes, feature branches, and test automatic deployments.</p>
+
+          <div class="space-y-3 pt-2">
+            <div class="p-4 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Simulate GitHub Push to 'main'</h4>
+                <p class="text-[11px] text-slate-400">Triggers complete container build, Helm package, and production Kubernetes rollout.</p>
+              </div>
+              <button onclick="triggerSimulatedEvent('push_main')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-sky-600 hover:bg-sky-500 text-white">
+                Push to Main
+              </button>
             </div>
-            <div id="deployments" class="deployments"></div>
-          </section>
 
-          <section class="panel">
-            <div class="panel-heading">
-              <h2>Pipeline Detail</h2>
-              <span id="selected-id" class="selected-id">No selection</span>
+            <div class="p-4 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Simulate Pull Request #42</h4>
+                <p class="text-[11px] text-slate-400">Triggers unit tests, Docker build, and preview development namespace rollout.</p>
+              </div>
+              <button onclick="triggerSimulatedEvent('pr')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white">
+                Open PR #42
+              </button>
             </div>
-            <div id="events" class="events empty">Select a deployment to inspect its stages, image build, and Kubernetes rollout.</div>
-          </section>
-        </section>
-      </section>
-    </main>
-    <script src="/app.js"></script>
-  </body>
+
+            <div class="p-4 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div>
+                <h4 class="text-xs font-bold text-white">Trigger Staging Release</h4>
+                <p class="text-[11px] text-slate-400">Deploys release to staging environment with 2 replicas.</p>
+              </div>
+              <button onclick="triggerSimulatedEvent('staging')" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-500 text-white">
+                Deploy Staging
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Webhook Integration Guide -->
+        <div class="p-5 rounded-xl bg-slate-900/80 border border-slate-800 shadow-sm space-y-4">
+          <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+            <i class="fa-brands fa-github text-sky-400"></i>
+            <span>GitHub Webhook Configuration</span>
+          </h2>
+          <p class="text-xs text-slate-400">Use these settings to configure automatic triggers in your GitHub repository settings:</p>
+
+          <div class="space-y-3 font-mono text-xs">
+            <div>
+              <span class="text-slate-400 block text-[11px]">Payload URL:</span>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 text-sky-300 select-all">
+                http://&lt;shipops-host&gt;:4000/api/webhooks/github
+              </div>
+            </div>
+
+            <div>
+              <span class="text-slate-400 block text-[11px]">Content type:</span>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 text-emerald-300">
+                application/json
+              </div>
+            </div>
+
+            <div>
+              <span class="text-slate-400 block text-[11px]">Secret Token:</span>
+              <div class="p-2 rounded bg-slate-950 border border-slate-800 text-amber-300 select-all">
+                shipops-secret-token-12345
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal: Trigger Manual Build -->
+  <div id="trigger-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+          <i class="fa-solid fa-play text-sky-400"></i>
+          <span>Trigger Manual Pipeline Build</span>
+        </h3>
+        <button onclick="closeTriggerModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="trigger-form" onsubmit="submitTriggerBuild(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Target Project</label>
+          <select id="trigger-project" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white font-mono">
+            <option value="proj-order-service">order-service</option>
+            <option value="proj-payment-gateway">payment-gateway</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Target Environment</label>
+          <select id="trigger-environment" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white">
+            <option value="production">production</option>
+            <option value="staging">staging</option>
+            <option value="development">development</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Git Branch</label>
+          <input type="text" id="trigger-branch" value="main" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white font-mono" required>
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Custom Image Tag (Optional)</label>
+          <input type="text" id="trigger-tag" placeholder="e.g. v1.2.0 (leave blank for auto)" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white font-mono">
+        </div>
+
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Commit Message</label>
+          <input type="text" id="trigger-message" value="Manual release triggered from ShipOps Web Console" class="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-white" required>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800">
+          <button type="button" onclick="closeTriggerModal()" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">
+            Cancel
+          </button>
+          <button type="submit" class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold flex items-center space-x-1.5">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Queue Build</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Rollback Confirmation -->
+  <div id="rollback-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-rose-400 flex items-center space-x-2">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span>Confirm 1-Click Helm Rollback</span>
+        </h3>
+        <button onclick="closeRollbackModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs text-slate-300">
+        <p>You are about to roll back release <span id="rollback-release-name" class="font-bold text-white font-mono">--</span> to revision <span id="rollback-target-rev" class="font-bold text-amber-400 font-mono">--</span>.</p>
+        <p class="text-slate-400">ShipOps will generate a new Helm revision containing the target revision's image tag and values, then execute zero-downtime rolling update on Kubernetes.</p>
+      </div>
+
+      <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-800 text-xs">
+        <button onclick="closeRollbackModal()" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold">
+          Cancel
+        </button>
+        <button onclick="executeRollback()" class="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold flex items-center space-x-1.5">
+          <i class="fa-solid fa-arrow-rotate-left"></i>
+          <span>Confirm Rollback</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
 </html>

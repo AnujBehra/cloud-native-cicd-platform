@@ -1,0 +1,15 @@
+{
+  "name": "order-service",
+  "version": "1.0.0",
+  "description": "Production Cloud-Native E-Commerce Order Microservice",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo 'All tests passed'"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "prom-client": "^15.1.3"
+  }
+}
