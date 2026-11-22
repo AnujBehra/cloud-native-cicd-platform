@@ -1,6 +1,7 @@
 import express from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import cors from 'cors';
 import { WebSocketServer, WebSocket } from 'ws';
 import { config } from './config/index.js';
@@ -57,8 +58,17 @@ export async function createServer() {
     if (req.path.startsWith('/api') || req.path.startsWith('/metrics')) {
       return next();
     }
-    const indexPath = path.join(publicPath, 'index.html');
-    res.sendFile(indexPath);
+    const resolvedIndex = [
+      path.join(publicPath, 'index.html'),
+      path.resolve(process.cwd(), 'public', 'index.html'),
+      path.resolve(__dirname, '..', 'public', 'index.html'),
+      path.resolve(__dirname, '..', '..', 'public', 'index.html'),
+    ].find((p) => fs.existsSync(p));
+
+    if (resolvedIndex) {
+      return res.sendFile(resolvedIndex);
+    }
+    res.status(404).send('ShipOps UI index.html not found');
   });
 
   // WebSocket connection handler

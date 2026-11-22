@@ -3,6 +3,8 @@ import path from 'path';
 
 dotenv.config();
 
+const defaultProjectRoot = path.resolve(__dirname, '..', '..');
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '4000', 10),
@@ -32,5 +34,5 @@ export const config = {
     prefix: 'cicd_',
     collectDefaultMetrics: true,
   },
-  workspaceRoot: path.resolve(process.cwd()),
+  workspaceRoot: process.env.WORKSPACE_ROOT || defaultProjectRoot,
 };
